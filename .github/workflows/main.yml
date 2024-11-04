@@ -1,0 +1,32 @@
+name: Auto Start Codespace
+
+on:
+  schedule:
+    - cron: '*/30 * * * *' # Chạy mỗi 30 phút
+
+jobs:
+  start-codespace:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Check and Start Codespace
+      env:
+        GITHUB_TOKEN: ${{ secrets.PAT_ORC }} # Thay bằng tên secret bạn đã tạo
+      run: |
+        # Kiểm tra nếu có Codespace nào đang chạy
+        codespace_id=$(curl -s -H "Authorization: token $GITHUB_TOKEN" https://api.github.com/user/codespaces | jq -r '.[0].id')
+        
+        # Nếu không có Codespace nào đang hoạt động, tạo Codespace mới
+        if [ "$codespace_id" == "null" ]; then
+          echo "No active Codespace found. Starting a new one..."
+          curl -s -X POST -H "Authorization: token $GITHUB_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{"repository": "ts6aud5vkg/orcfull", "machine": "standardLinux"}' \
+            https://api.github.com/user/codespaces
+          echo "New Codespace started."
+        else
+          echo "Codespace is already running."
+        fi
